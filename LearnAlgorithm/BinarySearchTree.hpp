@@ -61,6 +61,46 @@ public:
 		}
 	}
 
+	// 删除节点
+	// 为了容易理解，if分支比较多
+	void remove(BinarySearchTreeNode* node) {
+		// 如果node没有孩子，则直接删除
+		if (node->mLeft == nullptr && node->mRight == nullptr) {
+			transplant(node, nullptr);
+		}
+		// 如果node只有一个孩子，则用这个孩子替代node的位置
+		else if (node->mLeft != nullptr && node->mRight == nullptr) {
+			transplant(node, node->mLeft);
+		}
+		else if (node->mLeft == nullptr && node->mRight != nullptr) {
+			transplant(node, node->mRight);
+		}
+		// 如果有2个孩子
+		else {
+			// node的后继y（y一定在node的右子树中，且y是右子树的最小值，所以y肯定没有左孩子）
+			BinarySearchTreeNode* y = successor(node);
+			// 如果y是node的右孩子，则直接用y替代node
+			// 替换后，把node的左孩子设为y的左孩子(y原本没有左孩子)，y的右孩子不变
+			if (y == node->mRight) {
+				transplant(node, y);
+				y->mLeft = node->mLeft;
+				y->mLeft->mParent = y;
+			}
+			// y不是node的右孩子
+			else {
+				// 先用y的右孩子代替y（上面说过，y是没有左孩子的），这时y已经相当于没有孩子的节点了
+				transplant(y, y->mRight);
+				// 再用y代替node，把node的2个孩子设为y的孩子
+				transplant(node, y);
+				y->mLeft = node->mLeft;
+				y->mLeft->mParent = y;
+				y->mRight = node->mRight;
+				y->mRight->mParent = y;
+			}
+		}
+		delete node;
+	}
+
 	// 中序遍历
 	void inorderWalk(BinarySearchTreeNode* node, std::vector<int>& v) {
 		if (node == nullptr) {
@@ -132,6 +172,7 @@ public:
 	}
 
 private:
+	// 释放
 	void freeNode(BinarySearchTreeNode* node) {
 		if (node == nullptr) {
 			return;
@@ -139,6 +180,24 @@ private:
 		freeNode(node->mLeft);
 		freeNode(node->mRight);
 		delete node;
+	}
+
+	// 用des节点替换src节点
+	void transplant(BinarySearchTreeNode* src, BinarySearchTreeNode* des) {
+		if (src->mParent == nullptr) {
+			mRoot = des;
+		}
+		else {
+			if (src == src->mParent->mLeft) {
+				src->mParent->mLeft = des;
+			}
+			else {
+				src->mParent->mRight = des;
+			}
+		}
+		if (des != nullptr) {
+			des->mParent = src->mParent;
+		}
 	}
 
 	BinarySearchTreeNode* mRoot;
@@ -193,5 +252,16 @@ void test_BinarySearchTree() {
 		else {
 			printf("%d %d\n", v, p->mValue);
 		}
+	}
+	// remove
+	for (auto v : data) {
+		tree.remove(tree.search(v));
+		res.clear();
+		tree.inorderWalk(tree.root(), res);
+		for (auto v : res) {
+			printf("%d ", v);
+		}
+		printf("\n");
+		tree.insert(v);
 	}
 }
