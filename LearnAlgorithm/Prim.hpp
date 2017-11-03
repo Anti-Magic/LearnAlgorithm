@@ -1,4 +1,8 @@
 ﻿// Created by Buwenjie
+// 1、任意选择1个顶点为初始点，把这个顶点加入树中
+// 2、遍历所有不在树中的顶点，选择1个与树的距离最近的顶点u，把u加入树中，并把u与树连接的边加入结果集
+//    （顶点与树的距离，定义为顶点与树中每个顶点的距离的最小值）
+// 3、重复第2步，直到所有顶点都加入到了树中
 #pragma once
 
 #include <vector>
@@ -22,69 +26,51 @@ public:
 	int w;
 };
 
-int Prim2(int nVertices, std::vector<Edge>& edges, std::vector<Edge>& result) {
-	std::vector<std::vector<int>> adjacencyMatrix(nVertices, std::vector<int>(nVertices, -1));
-	for (auto& edge : edges) {
-		adjacencyMatrix[edge.u][edge.v] = edge.w;
-		adjacencyMatrix[edge.v][edge.u] = edge.w;
-	}
-	std::vector<int> vertSet;
-	std::vector<bool> isVertInSet(nVertices, false);
-
-	int wSum = 0;
-
-	vertSet.push_back(0);
-	isVertInSet[0] = true;
-	while (vertSet.size() < nVertices) {
-		int v = -1;
-		int w = 0x7fffffff;
-		for (int u : vertSet) {
-			for (int j = 0; j < nVertices; j++) {
-				if (adjacencyMatrix[u][j] >= 0 && adjacencyMatrix[u][j] < w && !isVertInSet[j]) {
-					v = j;
-					w = adjacencyMatrix[u][j];
-				}
-			}
-		}
-		vertSet.push_back(v);
-		isVertInSet[v] = true;
-		wSum += w;
-	}
-	return wSum;
-}
-
+// nVertices: 顶点数
+// edges: 所有边
+// result: 选择的边
+// return: 最小生成树总的权值之和
 int Prim(int nVertices, std::vector<Edge>& edges, std::vector<Edge>& result) {
-	const int inf = 0x7fffffff;
-	std::vector<std::vector<int>> adjacencyMatrix(nVertices, std::vector<int>(nVertices, inf));
+	// 使用邻接矩阵建图，没有直接联通的2个顶点，距离为无穷大，使用INF表示
+	const int INF = 0x7fffffff;
+	std::vector<std::vector<int>> adjacencyMatrix(nVertices, std::vector<int>(nVertices, INF));
 	for (auto& edge : edges) {
 		adjacencyMatrix[edge.u][edge.v] = edge.w;
 		adjacencyMatrix[edge.v][edge.u] = edge.w;
 	}
-	std::vector<Edge> ws(nVertices);
+	// 保存不在树中的顶点与树的最短连线
+	std::vector<Edge> minEdgeToTree(nVertices);
+	// 保存顶点是否已加入树中
 	std::vector<bool> vis(nVertices, false);
+	// 选择一个任意点为起始点，此处选择0点。把起始点加入树中
 	vis[0] = true;
-	for (int u = 1; u < nVertices; u++) {
-		ws[u].u = u;
-		ws[u].v = 0;
-		ws[u].w = adjacencyMatrix[u][0];
+	// 更新不在树中的顶点与树的连线
+	for (int j = 1; j < nVertices; j++) {
+		minEdgeToTree[j].u = j;
+		minEdgeToTree[j].v = 0;
+		minEdgeToTree[j].w = adjacencyMatrix[j][0];
 	}
 	int wSum = 0;
+	// 每次循环把一个顶点加入树中，共循环nVertices-1次
 	for (int i = 1; i < nVertices; i++) {
-		int w = inf;
+		// 遍历所有不在树中的顶点，选择1个与树的距离最近的顶点u
+		int w = INF;
 		int u = -1;
-		for (int j = 1; j < ws.size(); j++) {
-			if (!vis[j] && ws[j].w < w) {
-				w = ws[j].w;
+		for (int j = 1; j < nVertices; j++) {
+			if (!vis[j] && minEdgeToTree[j].w < w) {
+				w = minEdgeToTree[j].w;
 				u = j;
 			}
 		}
+		// 把u加入树中，把u与树的连线加入结果集
 		vis[u] = true;
 		wSum += w;
-		result.push_back(ws[u]);
-		for (int j = 1; j < ws.size(); j++) {
-			if (!vis[j] && adjacencyMatrix[j][u] < ws[j].w) {
-				ws[j].v = j;
-				ws[j].w = adjacencyMatrix[j][u];
+		result.push_back(minEdgeToTree[u]);
+		// 由于u加入了树中，不在树中的顶点与树的距离可能会更新
+		for (int j = 1; j < nVertices; j++) {
+			if (!vis[j] && adjacencyMatrix[j][u] < minEdgeToTree[j].w) {
+				minEdgeToTree[j].v = u;
+				minEdgeToTree[j].w = adjacencyMatrix[j][u];
 			}
 		}
 	}
